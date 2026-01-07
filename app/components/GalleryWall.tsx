@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import type { ArchiveItem } from "../page";
+import GalleryCard from "./GalleryCard";
 
 export default function GalleryWall({
   list,
@@ -24,34 +25,12 @@ export default function GalleryWall({
         </div>
       ) : (
         list.map((it) => (
-          <div
+          <GalleryCard
             key={it.id}
-            className="card"
-            style={{ borderColor: it.id === selectedId ? "rgba(216,179,106,0.75)" : undefined }}
-            onClick={() => onSelect(it.id)}
-          >
-            <div className="cardWrap">
-              <img className="cardImg" src={it.thumbDataUrl} alt={it.dollName} />
-              <div className="cardOverlay">
-                <div>
-                  <div className="ovTitle">{it.dollName}</div>
-                  <div className="ovMeta">
-                    {it.authorLabel}
-                    <br />
-                    “{it.whisper}”
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="cardBody">
-              <div className="cardName">{it.dollName}</div>
-              <div className="cardMeta">
-                {it.authorLabel}<br />
-                “{it.whisper}”
-              </div>
-            </div>
-          </div>
+            item={it}
+            selected={it.id === selectedId}
+            onSelect={(id) => onSelect(id)}
+          />
         ))
       )}
     </div>
