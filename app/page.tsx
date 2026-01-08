@@ -12,13 +12,12 @@ export type ArchiveItem = {
   authorLabel: string;
   whisper: string;
 
-  // ✅ 网站墙上展示：清晰图（正方形）
+  // 网站墙上展示：清晰图（正方形）
   thumbDataUrl: string;
 
-  // ✅ Wio 预览：像素化（拓麻歌子感）
+  // Wio 预览：像素化（拓麻歌子感）
   wioPreviewDataUrl: string;
 };
-
 
 export default function Page() {
   const [list, setList] = useState<ArchiveItem[]>([]);
@@ -27,6 +26,8 @@ export default function Page() {
 
   const [openUpload, setOpenUpload] = useState(false);
   const [openWio, setOpenWio] = useState(false);
+  const [busyClear, setBusyClear] = useState(false);
+  const [busySetCurrent, setBusySetCurrent] = useState(false);
 
   const selected = useMemo(
     () => list.find((x) => x.id === selectedId) || null,
@@ -38,28 +39,67 @@ export default function Page() {
       const r = await fetch("/api/archive/list", { cache: "no-store" });
       const j = await r.json();
 
+      // ✅ 兼容不同字段名：items / list
       const raw = (j.items ?? j.list ?? []) as any[];
 
-      setList(
-        raw.map((x) => ({
-          id: x.id,
-          createdAt: x.created_at ? Date.parse(x.created_at) : x.createdAt ?? Date.now(),
-          dollName: x.doll_name ?? x.dollName ?? "",
-          authorLabel: x.author_label ?? x.authorLabel ?? "Anonymous",
-          whisper: x.whisper ?? "",
-          // 这里注意：线上是 URL，本地旧版本可能是 dataUrl
-          thumbDataUrl: x.thumb_url ?? x.thumbDataUrl ?? "",
-          wioPreviewDataUrl: x.wio_preview_url ?? x.wioPreviewDataUrl ?? "",
-        }))
-      );
+      const mapped: ArchiveItem[] = raw.map((x) => ({
+        id: x.id,
+        createdAt: x.created_at ? Date.parse(x.created_at) : x.createdAt ?? Date.now(),
+        dollName: x.doll_name ?? x.dollName ?? "",
+        authorLabel: x.author_label ?? x.authorLabel ?? "Anonymous",
+        whisper: x.whisper ?? "",
+        thumbDataUrl: x.thumb_url ?? x.thumbDataUrl ?? "",
+        wioPreviewDataUrl: x.wio_preview_url ?? x.wioPreviewDataUrl ?? "",
+      }));
 
+      setList(mapped);
       setStatus("The hall is open. Walk softly.");
-    } catch {
-      setStatus("Local-only mode: the hall remembers what you show it (for now).");
+    } catch (e) {
+      setStatus("The hall is quiet—could not reach the archive right now.");
     }
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  async function clearTestUploads() {
+    setBusyClear(true);
+    setStatus("Sweeping the hall…");
+    try {
+      const r = await fetch("/api/archive/clear", { method: "POST" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.ok === false) throw new Error(j.error || (await r.text()));
+      setSelectedId(null);
+      await refresh();
+      setStatus("Cleared. The hall is open again.");
+    } catch (e: any) {
+      setStatus(`Could not clear right now: ${e?.message ?? String(e)}`);
+    } finally {
+      setBusyClear(false);
+    }
+  }
+
+  async function setAsCurrentCompanion() {
+    if (!selected) return;
+    setBusySetCurrent(true);
+    setStatus("Placing a small glow into the Current…");
+    try {
+      // ✅ 兼容两种 API body（有的版本用 itemId，有的用 id）
+      const r = await fetch("/api/current/set", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ itemId: selected.id, id: selected.id }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.ok === false) throw new Error(j.error || (await r.text()));
+      setStatus("Current Companion set. Your Wio can fetch it now.");
+    } catch (e: any) {
+      setStatus(`Could not set Current: ${e?.message ?? String(e)}`);
+    } finally {
+      setBusySetCurrent(false);
+    }
+  }
 
   return (
     <div className="container">
@@ -83,18 +123,14 @@ export default function Page() {
             <div className="hint">{status}</div>
             <button
               className="iconBtn"
-              onClick={async () => {
-                await fetch("/api/archive/clear", { method: "POST" });
-                setSelectedId(null);
-                refresh();
-              }}
-              title="Delete all current in-memory entries"
+              onClick={clearTestUploads}
+              disabled={busyClear}
+              title="Delete all current test entries"
             >
-              Clear test uploads
+              {busyClear ? "Clearing…" : "Clear test uploads"}
             </button>
           </div>
         </div>
-
 
         <GalleryWall
           list={list}
@@ -108,29 +144,48 @@ export default function Page() {
           <UploadFrame onOpen={() => setOpenUpload(true)} />
 
           <div className="eScreen">
-            <div className="eTitle">Companion Screen Portal</div>
+            <div className="eTitle">COMPANION SCREEN PORTAL</div>
             <div className="eLine">
               {selected ? (
                 <>
                   <b>{selected.dollName}</b>
                   <br />
                   “{selected.whisper}”
-                  <br /><br />
-                  Set this as the Current Companion—your Wio Terminal will fetch it from the web and glow with it.
+                  <br />
+                  <br />
+                  Set this as the <i>Current Companion</i>—your Wio Terminal will fetch it from the web and glow with it.
                 </>
               ) : (
                 <>
                   Select one exhibit from the wall.
                   <br />
-                  Then send it to the companion-screen.
-                  <br /><br />
+                  Tap it again to let it go.
+                  <br />
+                  <br />
                   The device will fetch the <i>Current</i> from the web.
                 </>
               )}
             </div>
-            <button className="eBtn" onClick={() => setOpenWio(true)} disabled={!selected}>
-              Open Wio Companion Portal
-            </button>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="primary"
+                onClick={setAsCurrentCompanion}
+                disabled={!selected || busySetCurrent}
+                title="Set selected exhibit as Current Companion"
+              >
+                {busySetCurrent ? "Setting…" : "Set as Current Companion"}
+              </button>
+
+              <button
+                className="eBtn"
+                onClick={() => setOpenWio(true)}
+                disabled={!selected}
+                title="Open warm portal view"
+              >
+                Open Wio Companion Portal
+              </button>
+            </div>
           </div>
         </div>
       </div>
