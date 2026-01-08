@@ -37,7 +37,22 @@ export default function Page() {
     try {
       const r = await fetch("/api/archive/list", { cache: "no-store" });
       const j = await r.json();
-      setList(j.list || []);
+
+      const raw = (j.items ?? j.list ?? []) as any[];
+
+      setList(
+        raw.map((x) => ({
+          id: x.id,
+          createdAt: x.created_at ? Date.parse(x.created_at) : x.createdAt ?? Date.now(),
+          dollName: x.doll_name ?? x.dollName ?? "",
+          authorLabel: x.author_label ?? x.authorLabel ?? "Anonymous",
+          whisper: x.whisper ?? "",
+          // 这里注意：线上是 URL，本地旧版本可能是 dataUrl
+          thumbDataUrl: x.thumb_url ?? x.thumbDataUrl ?? "",
+          wioPreviewDataUrl: x.wio_preview_url ?? x.wioPreviewDataUrl ?? "",
+        }))
+      );
+
       setStatus("The hall is open. Walk softly.");
     } catch {
       setStatus("Local-only mode: the hall remembers what you show it (for now).");
