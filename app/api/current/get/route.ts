@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET() {
-  const sb = supabaseAdmin();
+  const sb = supabaseAdmin;
 
   const cur = await sb.from("current_companion").select("item_id, version").eq("id", 1).single();
   if (cur.error) return new Response(cur.error.message, { status: 500 });
