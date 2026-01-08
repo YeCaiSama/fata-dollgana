@@ -14,7 +14,6 @@ export default function GalleryWall({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
-  // ✅ 鼠标滚轮：纵向滚轮 -> 横向滚动
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -41,7 +40,6 @@ export default function GalleryWall({
         paddingBottom: 6,
       }}
       onMouseDown={(e) => {
-        // 点击空白区域取消选择
         if (e.target === e.currentTarget) onSelect(null);
       }}
     >
@@ -90,6 +88,7 @@ export default function GalleryWall({
               >
                 <div className="cardWrap">
                   <img className="cardImg" src={it.thumbDataUrl} alt={it.dollName} />
+
                   <div className="cardOverlay">
                     <div>
                       <div className="ovTitle">{it.dollName}</div>
@@ -100,7 +99,6 @@ export default function GalleryWall({
                       </div>
                     </div>
 
-                    {/* ✅ Selected badge（你原来的 pill 可以继续用，也可以用这个内联样式） */}
                     {isSelected && (
                       <div style={{ position: "absolute", right: 14, bottom: 14 }}>
                         <span
@@ -124,7 +122,6 @@ export default function GalleryWall({
                       </div>
                     )}
 
-                    {/* ✅ 温暖 hover 提示卡片（替代系统 tooltip） */}
                     {(isHover || isSelected) && (
                       <div
                         style={{
@@ -133,9 +130,9 @@ export default function GalleryWall({
                           top: 14,
                           maxWidth: 210,
                           padding: "8px 10px",
-                          borderRadius: 12,
-                          border: "1px solid rgba(216,179,106,0.25)",
-                          background: "rgba(10,8,6,0.55)",
+                          borderRadius: 999,
+                          border: "1px solid rgba(216,179,106,0.22)",
+                          background: "rgba(20,14,9,0.55)",
                           color: "rgba(255,245,220,0.88)",
                           fontSize: 12.5,
                           lineHeight: 1.35,
@@ -143,14 +140,13 @@ export default function GalleryWall({
                           transform: isHover ? "translateY(0)" : "translateY(-2px)",
                           opacity: isHover || isSelected ? 1 : 0,
                           transition: "opacity 180ms ease, transform 180ms ease",
-                          pointerEvents: "none", // 不挡点击
+                          pointerEvents: "none",
                         }}
                       >
                         {hintText}
                       </div>
                     )}
 
-                    {/* ✅ Selected 发光（更“馆藏在呼吸”的感觉） */}
                     {isSelected && (
                       <div
                         style={{
@@ -166,13 +162,7 @@ export default function GalleryWall({
                   </div>
                 </div>
 
-                <div className="cardBody">
-                  <div className="cardName">{it.dollName}</div>
-                  <div className="cardMeta">
-                    {it.authorLabel}
-                    <br />“{it.whisper}”
-                  </div>
-                </div>
+                {/* ✅ 去掉 cardBody（避免信息重复显示） */}
               </div>
             );
           })
