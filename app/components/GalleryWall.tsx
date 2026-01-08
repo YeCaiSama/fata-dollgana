@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { ArchiveItem } from "../page";
 
 export default function GalleryWall({
@@ -12,14 +12,14 @@ export default function GalleryWall({
   onSelect: (id: string | null) => void;
 }) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [hoverId, setHoverId] = useState<string | null>(null);
 
-  // ✅ 鼠标滚轮：纵向滚轮 -> 横向滚动（更像“墙”）
+  // ✅ 鼠标滚轮：纵向滚轮 -> 横向滚动
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
-      // 仅在可横向滚动时拦截
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         el.scrollLeft += e.deltaY;
         e.preventDefault();
@@ -67,46 +67,115 @@ export default function GalleryWall({
             </div>
           </div>
         ) : (
-          list.map((it) => (
-            <div
-              key={it.id}
-              className="card"
-              style={{
-                borderColor: it.id === selectedId ? "rgba(216,179,106,0.75)" : undefined,
-                cursor: "pointer",
-              }}
-              onClick={() => onSelect(it.id === selectedId ? null : it.id)}
-              title={it.id === selectedId ? "Tap again to unselect" : "Select this exhibit"}
-            >
-              <div className="cardWrap">
-                <img className="cardImg" src={it.thumbDataUrl} alt={it.dollName} />
-                <div className="cardOverlay">
-                  <div>
-                    <div className="ovTitle">{it.dollName}</div>
-                    <div className="ovMeta">
-                      {it.authorLabel}
-                      <br />
-                      “{it.whisper}”
+          list.map((it) => {
+            const isSelected = it.id === selectedId;
+            const isHover = it.id === hoverId;
+
+            const hintText = isSelected
+              ? "Tap again to let it go."
+              : "Tap to select this exhibit.";
+
+            return (
+              <div
+                key={it.id}
+                className="card"
+                style={{
+                  borderColor: isSelected ? "rgba(216,179,106,0.75)" : undefined,
+                  cursor: "pointer",
+                  position: "relative",
+                }}
+                onClick={() => onSelect(isSelected ? null : it.id)}
+                onMouseEnter={() => setHoverId(it.id)}
+                onMouseLeave={() => setHoverId((prev) => (prev === it.id ? null : prev))}
+              >
+                <div className="cardWrap">
+                  <img className="cardImg" src={it.thumbDataUrl} alt={it.dollName} />
+                  <div className="cardOverlay">
+                    <div>
+                      <div className="ovTitle">{it.dollName}</div>
+                      <div className="ovMeta">
+                        {it.authorLabel}
+                        <br />
+                        “{it.whisper}”
+                      </div>
                     </div>
+
+                    {/* ✅ Selected badge（你原来的 pill 可以继续用，也可以用这个内联样式） */}
+                    {isSelected && (
+                      <div style={{ position: "absolute", right: 14, bottom: 14 }}>
+                        <span
+                          className="pill"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                            border: "1px solid rgba(216,179,106,0.55)",
+                            background: "rgba(25,18,10,0.55)",
+                            color: "rgba(255,236,198,0.92)",
+                            fontSize: 12,
+                            letterSpacing: 0.3,
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+                          }}
+                        >
+                          Selected
+                        </span>
+                      </div>
+                    )}
+
+                    {/* ✅ 温暖 hover 提示卡片（替代系统 tooltip） */}
+                    {(isHover || isSelected) && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          right: 14,
+                          top: 14,
+                          maxWidth: 210,
+                          padding: "8px 10px",
+                          borderRadius: 12,
+                          border: "1px solid rgba(216,179,106,0.25)",
+                          background: "rgba(10,8,6,0.55)",
+                          color: "rgba(255,245,220,0.88)",
+                          fontSize: 12.5,
+                          lineHeight: 1.35,
+                          backdropFilter: "blur(10px)",
+                          transform: isHover ? "translateY(0)" : "translateY(-2px)",
+                          opacity: isHover || isSelected ? 1 : 0,
+                          transition: "opacity 180ms ease, transform 180ms ease",
+                          pointerEvents: "none", // 不挡点击
+                        }}
+                      >
+                        {hintText}
+                      </div>
+                    )}
+
+                    {/* ✅ Selected 发光（更“馆藏在呼吸”的感觉） */}
+                    {isSelected && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          borderRadius: 22,
+                          boxShadow:
+                            "0 0 0 1px rgba(216,179,106,0.35), 0 0 28px rgba(216,179,106,0.18)",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    )}
                   </div>
+                </div>
 
-                  {it.id === selectedId && (
-                    <div style={{ position: "absolute", right: 14, bottom: 14 }}>
-                      <span className="pill">Selected</span>
-                    </div>
-                  )}
+                <div className="cardBody">
+                  <div className="cardName">{it.dollName}</div>
+                  <div className="cardMeta">
+                    {it.authorLabel}
+                    <br />“{it.whisper}”
+                  </div>
                 </div>
               </div>
-
-              <div className="cardBody">
-                <div className="cardName">{it.dollName}</div>
-                <div className="cardMeta">
-                  {it.authorLabel}
-                  <br />“{it.whisper}”
-                </div>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
